@@ -1,0 +1,82 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <PropertyPageSchema
+      Include="$(MSBuildThisFileDirectory)$(MSBuildThisFileName).xml" />
+    <AvailableItemName
+      Include="copy">
+      <Targets>_copy</Targets>
+    </AvailableItemName>
+  </ItemGroup>
+  <UsingTask
+    TaskName="copy"
+    TaskFactory="XamlTaskFactory"
+    AssemblyName="Microsoft.Build.Tasks.v4.0">
+    <Task>$(MSBuildThisFileDirectory)$(MSBuildThisFileName).xml</Task>
+  </UsingTask>
+  <Target
+    Name="_copy"
+    BeforeTargets="$(copyBeforeTargets)"
+    AfterTargets="$(copyAfterTargets)"
+    Condition="'@(copy)' != ''"
+    DependsOnTargets="$(copyDependsOn);ComputecopyOutput"
+    Outputs="@(copy-&gt;'%(Outputs)')"
+    Inputs="@(copy);%(copy.AdditionalDependencies);$(MSBuildProjectFile)">
+    <ItemGroup
+      Condition="'@(SelectedFiles)' != ''">
+      <copy
+        Remove="@(copy)"
+        Condition="'%(Identity)' != '@(SelectedFiles)'" />
+    </ItemGroup>
+    <ItemGroup>
+      <copy_tlog
+        Include="%(copy.Outputs)"
+        Condition="'%(copy.Outputs)' != '' and '%(copy.ExcludedFromBuild)' != 'true'">
+        <Source>@(copy, '|')</Source>
+      </copy_tlog>
+    </ItemGroup>
+    <Message
+      Importance="High"
+      Text="%(copy.ExecutionDescription)" />
+    <WriteLinesToFile
+      Condition="'@(copy_tlog)' != '' and '%(copy_tlog.ExcludedFromBuild)' != 'true'"
+      File="$(IntDir)$(ProjectName).write.1.tlog"
+      Lines="^%(copy_tlog.Source);@(copy_tlog-&gt;'%(Fullpath)')" />
+    <copy
+      Condition="'@(copy)' != '' and '%(copy.ExcludedFromBuild)' != 'true'"
+      CommandLineTemplate="%(copy.CommandLineTemplate)"
+      OutputName="%(copy.OutputName)"
+      AdditionalOptions="%(copy.AdditionalOptions)"
+      Inputs="@(copy)" />
+  </Target>
+  <PropertyGroup>
+    <ComputeLinkInputsTargets>
+            $(ComputeLinkInputsTargets);
+            ComputecopyOutput;
+          </ComputeLinkInputsTargets>
+    <ComputeLibInputsTargets>
+            $(ComputeLibInputsTargets);
+            ComputecopyOutput;
+          </ComputeLibInputsTargets>
+  </PropertyGroup>
+  <Target
+    Name="ComputecopyOutput"
+    Condition="'@(copy)' != ''">
+    <ItemGroup>
+      <copyDirsToMake
+        Condition="'@(copy)' != '' and '%(copy.ExcludedFromBuild)' != 'true'"
+        Include="%(copy.Outputs)" />
+      <Link
+        Include="%(copyDirsToMake.Identity)"
+        Condition="%(Extension)=='.obj' or %(Extension)=='.res' or %(Extension)=='.rsc' or %(Extension)=='.lib'" />
+      <Lib
+        Include="%(copyDirsToMake.Identity)"
+        Condition="%(Extension)=='.obj' or %(Extension)=='.res' or %(Extension)=='.rsc' or %(Extension)=='.lib'" />
+      <ImpLib
+        Include="%(copyDirsToMake.Identity)"
+        Condition="%(Extension)=='.obj' or %(Extension)=='.res' or %(Extension)=='.rsc' or %(Extension)=='.lib'" />
+    </ItemGroup>
+    <MakeDir
+      Directories="@(copyDirsToMake-&gt;'%(RootDir)%(Directory)')" />
+  </Target>
+</Project>
